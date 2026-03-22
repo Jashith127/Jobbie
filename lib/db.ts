@@ -42,7 +42,9 @@ export async function saveJobs(
         // Unique constraint violation - job already exists
         continue;
       }
-      throw error;
+      // Database error (may not be initialized yet) - log and continue
+      console.warn(`⚠️ Database error saving job ${job.title}:`, error.message);
+      continue;
     }
   }
 

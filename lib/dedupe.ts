@@ -25,10 +25,17 @@ function generateHash(title: string, company: string): string {
 export async function dedupeJobs(
   jobs: ScrapedJob[]
 ): Promise<ScrapedJob[]> {
-  // Get existing hashes from database
-  const existingHashes = new Set(
-    (await prisma.jobDedupeHash.findMany({})).map((h) => h.hash)
-  );
+  let existingHashes = new Set<string>();
+  
+  try {
+    // Get existing hashes from database
+    const hashes = await prisma.jobDedupeHash.findMany({});
+    existingHashes = new Set(hashes.map((h) => h.hash));
+  } catch (error: any) {
+    console.warn('⚠️ Could not query existing hashes (database may not be initialized)', 
+      error.message);
+    // Continue with empty set if database error (all jobs treated as new)
+  }
 
   const deduped: ScrapedJob[] = [];
   const newHashes: string[] = [];

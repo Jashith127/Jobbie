@@ -28,6 +28,16 @@ try {
   process.exit(1);
 }
 
+// Run prisma migrations to create/update database
+try {
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+  console.log('✓ Prisma migrations applied');
+} catch (error) {
+  console.warn('⚠ Warning: Prisma migrations failed (may be normal on first build)');
+  console.warn('  Error:', error.message);
+  // Don't exit on migration failure - database might be created with next step
+}
+
 // Run next build
 try {
   execSync('npx next build', { stdio: 'inherit' });
