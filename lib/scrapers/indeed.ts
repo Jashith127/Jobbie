@@ -1,24 +1,11 @@
-import { chromium } from 'playwright';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { ScrapedJob } from '../types';
 
 export async function scrapeIndeed(): Promise<ScrapedJob[]> {
-  const browser = await chromium.launch({
-    headless: true,
-    args: [
-      '--disable-gpu',
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--single-process',
-    ],
-  });
-
   const jobs: ScrapedJob[] = [];
 
   try {
-    const page = await browser.newPage();
-
-    // Use a simple Indeed search URL
     const keywords = process.env.INDEED_SEARCH_KEYWORDS || 'developer';
     const location = process.env.INDEED_LOCATION || 'United States';
 
@@ -28,69 +15,67 @@ export async function scrapeIndeed(): Promise<ScrapedJob[]> {
 
     console.log(`Scraping Indeed: ${searchUrl}`);
 
-    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 30000 });
-
-    // Wait for job listings to load
-    await page.waitForSelector('[data-job-id]', { timeout: 5000 }).catch(() => {
-      console.warn('Job listings selector not found, trying alternative...');
+    // Fetch the page with a realistic user agent
+    const response = await axios.get(searchUrl, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+        'Accept-Language': 'en-US,en;q=0.9',
+      },
+      timeout: 15000,
     });
 
-    // Extract job cards
-    const jobCards = await page.$$('[data-job-id]');
+    const $ = cheerio.load(response.data);
 
-    for (let i = 0; i < Math.min(jobCards.length, 15); i++) {
+    // Indeed uses different selectors - adjust based on current HTML structure
+    const jobCards = $('div[data-job-id]');
+
+    jobCards.each((index, element) => {
+      if (index >= 15) return; // Limit to 15 jobs
+
       try {
-        const card = jobCards[i];
+        const $card = $(element);
 
-        const title = await card.$eval(
-          '[rel="job-title-link"]',
-          (el) => el.textContent?.trim() || ''
-        ).catch(() => '');
+        // Extract job title
+        const title = $card.find('h2 a[data-jk]').attr('title') || 
+                     $card.find('h2.jobTitle span').text().trim() ||
+                     '';
 
-        const company = await card.$eval(
-          '[data-company-name]',
-          (el) => el.textContent?.trim() || ''
-        ).catch(() => '');
+        // Extract company
+        const company = $card.find('[data-company-name]').text().trim() ||
+                       $card.find('.companyName').text().trim() ||
+                       '';
 
-        const location = await card
-          .$eval(
-            '[data-job-location]',
-            (el) => el.textContent?.trim() || ''
-          )
-          .catch(() => undefined);
+        // Extract location
+        const location = $card.find('[data-job-location]').text().trim() ||
+                        $card.find('.companyLocation').text().trim() ||
+                        '';
 
-        const link = await card
-          .$eval('[rel="job-title-link"]', (el: any) => el.href)
-          .catch(() => '');
+        // Extract job link
+        const link = $card.find('h2 a[data-jk]').attr('href') || '';
+        const fullLink = link ? `https://www.indeed.com${link}` : '';
 
-        const salary = await card
-          .$eval(
-            '[data-salary-snippet]',
-            (el) => el.textContent?.trim() || ''
-          )
-          .catch(() => undefined);
+        // Extract salary if available
+        const salary = $card.find('[data-salary-snippet]').text().trim() || '';
 
-        if (title && company && link) {
+        if (title && company && fullLink) {
           jobs.push({
             title,
             company,
-            location,
-            link,
-            salary,
+            location: location || undefined,
+            link: fullLink,
+            salary: salary || undefined,
             source: 'indeed',
           });
         }
       } catch (error) {
-        console.error(`Error extracting job card ${i}:`, error);
-        continue;
+        console.error(`Error extracting job card ${index}:`, error);
+        // Continue to next card
       }
-    }
-
-    await page.close();
+    });
   } catch (error) {
     console.error('Error scraping Indeed:', error);
-  } finally {
-    await browser.close();
+    // Return empty array instead of throwing - graceful degradation
   }
 
   console.log(`Successfully scraped ${jobs.length} jobs from Indeed`);
