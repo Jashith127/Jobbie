@@ -4,5 +4,6 @@ export interface ScrapedJob {
   location?: string;
   link: string;
   salary?: string;
-  source: 'indeed' | 'linkedin';
+  date?: string;
+  source: 'adzuna' | 'jooble' | 'google' | 'niche' | 'indeed' | 'linkedin';
 }

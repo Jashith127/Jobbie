@@ -1,25 +1,30 @@
-# Jobbie - Job Listing Aggregator
+# Jobbie - Hybrid Job Listing Aggregator
 
-A production-ready job listing aggregator designed for personal use. Automates fetching, filtering, deduplication, and display of job listings via free APIs.
+A production-ready job aggregator that fetches listings from multiple free APIs and niche job boards. Designed for reliability and resilience through a **hybrid multi-source ingestion system**.
 
 ## Features
 
-- **Job API Integration**: Fetches job listings from JSearch API (free tier: 100 req/month)
-- **Smart Filtering**: User-defined include/exclude keywords and location preferences
-- **Deduplication**: Prevents duplicate listings using normalized hashing
-- **Clean UI**: Modern, minimal dashboard for browsing jobs
-- **Database Storage**: SQLite via Prisma ORM for persistent storage
-- **Vercel Ready**: Serverless-compatible, meets all Vercel constraints
-- **Scheduled Scraping**: Optional cron-based automation via Vercel or external services
-- **Demo Mode**: Shows sample jobs when API key is not configured
+- **Multi-Source Ingestion**: Combines APIs (primary) + niche boards (secondary) for maximum coverage
+- **4-Tier Pipeline**: APIs → Legacy Scrapers → Niche Boards → Search Engines
+- **Supported Sources**:
+  - **APIs** (Primary): Adzuna, Jooble
+  - **Legacy** (Fallback): Indeed (via API), LinkedIn (optional)
+  - **Niche Boards** (Secondary): StartupSchool, IndieHackers, Internshala
+  - **Search Engines** (Optional): Google Jobs (free scraping)
+- **Smart Filtering**: Keyword and location-based job filtering
+- **Deduplication**: SHA256-based duplicate prevention across sources
+- **Clean UI**: Modern dashboard for browsing, searching, and triggering scrapes
+- **Database Storage**: SQLite with Prisma ORM for persistence
+- **Vercel Ready**: Fully serverless-compatible with built-in cron scheduling
+- **Fail-Safe**: Each source fails independently without disrupting the whole pipeline
 
 ## Tech Stack
 
-- **Framework**: Next.js (App Router) with TypeScript
-- **Database**: SQLite with Prisma ORM
-- **Job Data**: JSearch API (RapidAPI)
+- **Framework**: Next.js 15.5 (App Router) with TypeScript
+- **Database**: SQLite with Prisma ORM 5.22
 - **HTTP Client**: Axios
-- **Hosting**: Vercel (serverless functions)
+- **HTML Parsing**: Cheerio (for niche boards)
+- **Hosting**: Vercel (serverless)
 - **Language**: 100% TypeScript
 
 ## Project Structure
@@ -27,32 +32,35 @@ A production-ready job listing aggregator designed for personal use. Automates f
 ```
 .
 ├── app/
-│   ├── layout.tsx          # Root layout
-│   ├── page.tsx            # Main UI (jobs listing)
+│   ├── layout.tsx           # Root layout
+│   ├── page.tsx             # Main UI dashboard
 │   └── api/
-│       ├── scrape/route.ts # Fetch & store jobs
-│       └── jobs/route.ts   # Jobs listing endpoint
+│       ├── scrape/route.ts  # Unified scraping orchestrator
+│       └── jobs/route.ts    # Jobs listing endpoint
 ├── lib/
-│   ├── db.ts              # Database utilities
-│   ├── filter.ts          # Job filtering logic
-│   ├── dedupe.ts          # Deduplication logic
-│   ├── types.ts           # TypeScript types
-│   └── scrapers/
-│       ├── indeed.ts      # JSearch API integration
-│       └── linkedin.ts    # Disabled (unreliable)
+│   ├── db.ts                # Database utilities
+│   ├── filter.ts            # Job filtering logic
+│   ├── dedupe.ts            # Deduplication logic
+│   ├── types.ts             # Shared TypeScript types
+│   ├── scrapers/            # (Legacy, deprecated)
+│   │   ├── indeed.ts        # Indeed legacy scraper
+│   │   └── linkedin.ts      # LinkedIn (disabled)
+│   └── sources/             # (New, primary)
+│       ├── adzuna.ts        # Adzuna API
+│       ├── jooble.ts        # Jooble API
+│       ├── google.ts        # Google Search (placeholder)
+│       └── niche.ts         # Niche boards (StartupSchool, IndieHackers, Internshala)
 ├── prisma/
-│   └── schema.prisma      # Prisma database schema
-├── vercel.json            # Vercel configuration
-├── next.config.js         # Next.js configuration
-├── tsconfig.json          # TypeScript configuration
-└── package.json           # Dependencies
+│   └── schema.prisma        # Database schema
+├── vercel.json              # Vercel serverless config + cron
+├── next.config.js           # Next.js config
+├── tsconfig.json            # TypeScript config
+└── package.json             # Dependencies
 ```
 
 ## Quick Start
 
 ### 1. Installation
-
-Clone or create the project, then install dependencies:
 
 ```bash
 npm install
@@ -60,103 +68,193 @@ npm install
 
 ### 2. Database Setup
 
-Create a `.env.local` file (copy from `.env.example`):
+Create `.env.local`:
 
 ```bash
 cp .env.example .env.local
 ```
 
-Configure environment variables:
-
-```env
-DATABASE_URL="file:./dev.db"
-INDEED_SEARCH_KEYWORDS="senior developer,full stack engineer,backend"
-INDEED_LOCATION="United States"
-INCLUDE_KEYWORDS="developer,engineer,software"
-EXCLUDE_KEYWORDS="senior,lead,manager"
-PREFERRED_LOCATIONS="Remote,San Francisco"
-```
-
-Initialize the database:
+Initialize database:
 
 ```bash
 npm run prisma:migrate
 ```
 
-### 3. Development
-
-Start the development server:
+### 3. Start Development Server
 
 ```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-**Scraping from the UI**: Click the "Scrape Now" button to start a scraping job. Results will appear in the job list.
+Open [http://localhost:3000](http://localhost:3000)
 
 ## Configuration
 
 ### Environment Variables
 
-- `DATABASE_URL`: SQLite database path (default: `file:./dev.db`)
-- `INDEED_SEARCH_KEYWORDS`: Comma-separated keywords for Indeed scraping
-- `INDEED_LOCATION`: Location to search for jobs
-- `INCLUDE_KEYWORDS`: Comma-separated keywords to include (at least one must match job title)
-- `EXCLUDE_KEYWORDS`: Comma-separated keywords to exclude (none should match)
-- `PREFERRED_LOCATIONS`: Comma-separated preferred locations (jobs from these locations prioritized)
+```env
+# Database
+DATABASE_URL="file:./dev.db"
 
-### Scrapers
+# Search Parameters
+SEARCH_KEYWORDS="developer,engineer,software"
+SEARCH_LOCATION="United States"
 
-#### Indeed Scraper
+# Job Filtering
+INCLUDE_KEYWORDS="developer,engineer,software"
+EXCLUDE_KEYWORDS="senior,lead,manager"
+PREFERRED_LOCATIONS="Remote,San Francisco"
 
-Located in `lib/scrapers/indeed.ts`:
+# API Keys (get free keys from links below)
+ADZUNA_API_ID=""        # Free: https://developer.adzuna.com/
+ADZUNA_API_KEY=""       # 1000 API calls/month free tier
 
-- Extracts: title, company, location, link, salary (if available)
-- Uses Playwright to load pages and extract data
-- Limits to 15 job listings per run (configurable)
-- Handles missing data gracefully
+JOOBLE_API_KEY=""       # Free: https://jooble.org/api/about
+                        # 1000 API calls/month free tier
 
-#### LinkedIn Scraper (Unsupported)
+# LinkedIn (optional, disabled by default)
+SCRAPE_LINKEDIN="false"
+LINKEDIN_EMAIL=""
+LINKEDIN_PASSWORD=""
+```
 
-⚠️ **Warning**: LinkedIn actively blocks scrapers. Adding LinkedIn support is NOT recommended because:
+### Getting Free API Keys
 
-- LinkedIn requires authentication and has strong anti-scraping measures
-- Terms of service violations
-- High risk of account bans
-- Unreliable and frequently breaks
+#### 1. Adzuna API (Recommended)
 
-For LinkedIn jobs, consider using their official API (requires approval) or RSS feeds.
+- **Sign up**: https://developer.adzuna.com/
+- **Free tier**: 1,000 API calls/month
+- **Steps**:
+  1. Sign up for developer account
+  2. Create an application
+  3. Copy `App ID` and `API key`
+  4. Add to `.env.local`: `ADZUNA_API_ID` and `ADZUNA_API_KEY`
+
+#### 2. Jooble API (Recommended)
+
+- **Sign up**: https://jooble.org/api/about
+- **Free tier**: 1,000 API calls/month
+- **Steps**:
+  1. Request API access
+  2. Get your API key via email
+  3. Add to `.env.local`: `JOOBLE_API_KEY`
+
+#### 3. Google Jobs (Optional, Free Scraping)
+
+- **Endpoint**: Google Jobs search (no API key needed)
+- **Free tier**: Unlimited, but may be rate-limited
+- **How it works**: Scrapes job listings from `google.com/search?tbm=lcm`
+- **No setup**: Works out of the box!
+
+**Optional upgrade**: Use **Google Custom Search API** for reliable access
+- **Sign up**: https://programmablesearchengine.google.com/
+- **Free tier**: 100 queries/day
+- **Setup** (optional):
+  ```env
+  GOOGLE_SEARCH_API_KEY="your_api_key"
+  GOOGLE_SEARCH_ENGINE_ID="your_engine_id"
+  ```
+
+#### 4. LinkedIn (Optional)
+
+⚠️ **Not Recommended**: LinkedIn actively blocks scrapers. Use only if:
+- You have official API access (rare, requires company approval)
+- You understand ToS violations
+
+Consider instead:
+- LinkedIn's [official API](https://developer.linkedin.com/)
+- Job board aggregators with legal access
+
+## Data Sources & Coverage
+
+| Source | Type | Coverage | Free Tier | Reliability |
+|--------|------|----------|-----------|-------------|
+| **Adzuna** | API | US, UK, India, etc. | 1,000 req/mo | ⭐⭐⭐⭐⭐ |
+| **Jooble** | API | Global | 1,000 req/mo | ⭐⭐⭐⭐⭐ |
+| **Google Jobs** | Web Scrape | Global | Unlimited* | ⭐⭐⭐⭐ |
+| **StartupSchool** | Web Scrape | Startup jobs | Unlimited | ⭐⭐⭐⭐ |
+| **IndieHackers** | Web Scrape | Indie jobs | Unlimited | ⭐⭐⭐⭐ |
+| **Internshala** | Web Scrape | Internships, Asia-focused | Unlimited | ⭐⭐⭐⭐ |
+| **Indeed** | Legacy API | US-focused | Limited | ⭐⭐⭐ |
+| **LinkedIn** | Disabled | N/A | N/A | ⚠️ Blocked |
+
+*Google may rate-limit aggressive scraping. Use **Google Custom Search API** (100 free/day) for reliable access.
+
+## Architecture: 4-Tier Ingestion Pipeline
+
+```
+┌─────────────────────────────────────────────────────────┐
+│              Unified Scraping Pipeline                  │
+├─────────────────────────────────────────────────────────┤
+│                                                         │
+│  Tier 1: API Sources (Primary)                         │
+│  ├─ Adzuna (free API)                                 │
+│  └─ Jooble (free API)                                 │
+│                           ↓                             │
+│  Tier 2: Legacy Scrapers (Fallback)                    │
+│  ├─ Indeed (legacy, marked as secondary)              │
+│  └─ LinkedIn (optional, disabled by default)          │
+│                           ↓                             │
+│  Tier 3: Niche Boards (Secondary)                      │
+│  ├─ StartupSchool (HTML parsing)                      │
+│  ├─ IndieHackers (HTML parsing)                       │
+│  └─ Internshala (HTML parsing + India focus)          │
+│                           ↓                             │
+│  Tier 4: Search Engines (Optional)                     │
+│  └─ Google Jobs (free scraping, no API key)           │
+│                           ↓                             │
+│  ┌─ Merge (combine all sources)                        │
+│  ├─ Filter (keywords, location)                        │
+│  ├─ Dedupe (SHA256 hashing)                            │
+│  └─ Save (to SQLite database)                          │
+│                                                         │
+└─────────────────────────────────────────────────────────┘
+
+Each source fails independently – pipeline continues if one source breaks
+```
 
 ## API Routes
 
 ### POST /api/scrape
 
-Triggers a scraping job. Returns number of new jobs saved.
+Triggers the unified scraping pipeline. Fetches jobs from all configured sources.
+
+**Response** (new format with source breakdown):
+
+```json
+{
+  "success": true,
+  "newJobs": 42,
+  "message": "Successfully scraped and saved 42 new jobs from 3 sources",
+  "sources": {
+    "adzuna": 15,
+    "jooble": 12,
+    "niche": 15
+  },
+  "breakdown": {
+    "total_attempted": 85,
+    "after_filter": 60,
+    "after_dedupe": 42,
+    "saved": 42
+  }
+}
+```
+
+**Curl example**:
 
 ```bash
 curl -X POST http://localhost:3000/api/scrape
 ```
 
-Response:
-
-```json
-{
-  "success": true,
-  "newJobs": 5,
-  "message": "Successfully scraped and saved 5 new jobs"
-}
-```
-
 ### GET /api/jobs
 
-Fetches all stored jobs (up to 100, sorted by newest).
+Fetches stored jobs (up to 100, newest first).
 
 ```bash
 curl http://localhost:3000/api/jobs
 ```
 
-Response:
+**Response**:
 
 ```json
 {
@@ -167,7 +265,7 @@ Response:
       "company": "TechCorp",
       "location": "San Francisco, CA",
       "link": "https://...",
-      "source": "indeed",
+      "source": "adzuna",
       "salary": "$150k - $200k",
       "createdAt": "2024-01-20T10:30:00Z"
     }
@@ -303,21 +401,52 @@ The `JobDedupeHash` table stores normalized hashes of job title+company pairs to
 
 ## Troubleshooting
 
-### Browser Error: "Playwright is not installed"
+### API Key Issues: "API key not set"
 
-```bash
-npm install --save-dev @playwright/test
-npx playwright install
-```
+If you see warnings about missing API keys in logs:
+
+1. **Get free keys**: See "Getting Free API Keys" section above
+2. **Add to `.env.local`** (development):
+   ```env
+   ADZUNA_API_ID="your_app_id"
+   ADZUNA_API_KEY="your_api_key"
+   JOOBLE_API_KEY="your_api_key"
+   ```
+3. **Add to Vercel** (production):
+   - Go to Vercel dashboard → Project → Settings → Environment Variables
+   - Add each key and redeploy
+
+**Without API keys**: System still works, but only niche boards + legacy scrapers will provide results (limited coverage).
+
+### No Jobs Found: "No new jobs found during scraping"
+
+Likely causes:
+
+1. **All sources failed**: Check application console logs for source-specific errors
+2. **All jobs were filtered out**: Adjust `INCLUDE_KEYWORDS` and `EXCLUDE_KEYWORDS` in `.env.local`
+3. **All jobs were deduped**: Normal if you re-scrape frequently; database already has those jobs
+4. **Network issues**: Niche board sites might be down; try again later
+
+**Debug**: Check scrapiing logs in Vercel dashboard for which sources succeeded/failed.
 
 ### Database Error: "SQLITE_CANTOPEN"
 
-Create the database directory:
+Setup steps:
 
 ```bash
 mkdir -p prisma
 npm run prisma:migrate
 ```
+
+### Niche Board Pages Won't Load
+
+If scraping niche boards returns 0 results:
+
+1. **Network/DNS issue**: Try manually visiting the site in a browser
+2. **HTML structure changed**: Job board redesigns break CSS selectors; update `lib/sources/niche.ts`
+3. **Rate limiting**: Wait a few minutes before retrying
+
+**Note**: Niche board scraping is best-effort (HTML parsing is fragile). APIs are more reliable.
 
 ### Scraping Returns No Jobs
 
