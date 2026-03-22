@@ -39,7 +39,7 @@ export async function fetchGoogleSearchJobs(): Promise<ScrapedJob[]> {
     const $ = cheerio.load(response.data);
 
     // Google Jobs uses complex nested selectors, try multiple patterns
-    $('[jsname], [data-ei], div[role="article"]').slice(0, 20).forEach((elem) => {
+    $('[jsname], [data-ei], div[role="article"]').slice(0, 20).each((i, elem) => {
       try {
         const $elem = $(elem);
         

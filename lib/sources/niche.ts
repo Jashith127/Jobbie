@@ -26,7 +26,7 @@ async function scrapeStartupSchoolJobs(): Promise<ScrapedJob[]> {
 
     const $ = cheerio.load(response.data);
 
-    $('div[class*="job"], article[class*="job"]').slice(0, 10).forEach((elem) => {
+    $('div[class*="job"], article[class*="job"]').slice(0, 10).each((i, elem) => {
       try {
         const $elem = $(elem);
         const title = $elem.find('h2, h3, [class*="title"]').text().trim();
@@ -70,7 +70,7 @@ async function scrapeIndieHackersJobs(): Promise<ScrapedJob[]> {
 
     const $ = cheerio.load(response.data);
 
-    $('div[class*="job"], li[class*="job"]').slice(0, 10).forEach((elem) => {
+    $('div[class*="job"], li[class*="job"]').slice(0, 10).each((i, elem) => {
       try {
         const $elem = $(elem);
         const title = $elem.find('h2, h3, [class*="title"]').text().trim();
@@ -121,8 +121,8 @@ async function scrapeInternshalaJobs(): Promise<ScrapedJob[]> {
     const $ = cheerio.load(response.data);
 
     // Internshala job listing selectors
-    $('div.job_card, div.internship_card, article[data-job-id]').slice(0, 15).forEach(
-      (elem) => {
+    $('div.job_card, div.internship_card, article[data-job-id]').slice(0, 15).each(
+      (i, elem) => {
         try {
           const $elem = $(elem);
           
