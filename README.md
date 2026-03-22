@@ -1,22 +1,24 @@
 # Jobbie - Job Listing Aggregator
 
-A production-ready job listing aggregator designed for personal use. Automates scraping, filtering, deduplication, and display of job listings from multiple sources.
+A production-ready job listing aggregator designed for personal use. Automates fetching, filtering, deduplication, and display of job listings via free APIs.
 
 ## Features
 
-- **Multi-source Scraping**: Scrapes job listings from Indeed (LinkedIn support with warnings)
+- **Job API Integration**: Fetches job listings from JSearch API (free tier: 100 req/month)
 - **Smart Filtering**: User-defined include/exclude keywords and location preferences
 - **Deduplication**: Prevents duplicate listings using normalized hashing
 - **Clean UI**: Modern, minimal dashboard for browsing jobs
 - **Database Storage**: SQLite via Prisma ORM for persistent storage
 - **Vercel Ready**: Serverless-compatible, meets all Vercel constraints
 - **Scheduled Scraping**: Optional cron-based automation via Vercel or external services
+- **Demo Mode**: Shows sample jobs when API key is not configured
 
 ## Tech Stack
 
 - **Framework**: Next.js (App Router) with TypeScript
 - **Database**: SQLite with Prisma ORM
-- **Scraping**: Playwright (headless Chromium)
+- **Job Data**: JSearch API (RapidAPI)
+- **HTTP Client**: Axios
 - **Hosting**: Vercel (serverless functions)
 - **Language**: 100% TypeScript
 
@@ -28,14 +30,16 @@ A production-ready job listing aggregator designed for personal use. Automates s
 │   ├── layout.tsx          # Root layout
 │   ├── page.tsx            # Main UI (jobs listing)
 │   └── api/
-│       ├── scrape/route.ts # Scraping trigger endpoint
+│       ├── scrape/route.ts # Fetch & store jobs
 │       └── jobs/route.ts   # Jobs listing endpoint
 ├── lib/
 │   ├── db.ts              # Database utilities
 │   ├── filter.ts          # Job filtering logic
 │   ├── dedupe.ts          # Deduplication logic
+│   ├── types.ts           # TypeScript types
 │   └── scrapers/
-│       └── indeed.ts      # Indeed scraper
+│       ├── indeed.ts      # JSearch API integration
+│       └── linkedin.ts    # Disabled (unreliable)
 ├── prisma/
 │   └── schema.prisma      # Prisma database schema
 ├── vercel.json            # Vercel configuration
