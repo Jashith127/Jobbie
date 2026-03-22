@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^powershell -ExecutionPolicy Bypass -Command \"cd 'C:\\\\Users\\\\jashi\\\\OneDrive\\\\Desktop\\\\Jobbie' ; npm install 2>&1\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^powershell -ExecutionPolicy Bypass -Command \"cd 'C:\\\\Users\\\\jashi\\\\OneDrive\\\\Desktop\\\\Jobbie' ; `\\$env:DATABASE_URL='file:\\./prisma/dev\\.db' ; npm run build 2>&1\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}
