@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
+    "build": "node build.js",
     "start": "next start",
     "lint": "next lint",
     "prisma:migrate": "prisma migrate dev",
