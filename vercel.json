@@ -6,8 +6,11 @@
   "functions": {
     "app/api/**": {
       "maxDuration": 60,
-      "memory": 512
+      "memory": 1024
     }
+  },
+  "env": {
+    "PLAYWRIGHT_DOWNLOAD_HOST": "https://playwright.azureedge.net"
   },
   "crons": [
     {

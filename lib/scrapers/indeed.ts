@@ -4,7 +4,13 @@ import { ScrapedJob } from '../types';
 export async function scrapeIndeed(): Promise<ScrapedJob[]> {
   const browser = await chromium.launch({
     headless: true,
-    args: ['--disable-gpu', '--no-sandbox'],
+    args: [
+      '--disable-gpu',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--single-process',
+    ],
   });
 
   const jobs: ScrapedJob[] = [];
