@@ -1,32 +1,37 @@
 {
-  "name": "jobbie",
+  "name": "mc-parallel-agent",
   "version": "1.0.0",
-  "description": "Production-ready job listing aggregator",
-  "private": true,
-  "scripts": {
-    "dev": "next dev",
-    "build": "node build.js",
-    "start": "next start",
-    "lint": "next lint",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:generate": "prisma generate",
-    "prisma:studio": "prisma studio"
+  "description": "A Minecraft agent with human-limited abilities that runs actions in parallel across body channels, driven by Claude",
+  "directories": {
+    "test": "test"
   },
+  "scripts": {
+    "test": "node --test --import tsx test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/main.ts",
+    "test-server": "node scripts/test-server.cjs"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jashith127/Jobbie.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Jashith127/Jobbie/issues"
+  },
+  "homepage": "https://github.com/Jashith127/Jobbie#readme",
   "dependencies": {
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "next": "^15.1.0",
-    "@prisma/client": "^5.15.0",
-    "axios": "^1.6.0",
-    "cheerio": "^1.0.0-rc.12"
+    "@anthropic-ai/sdk": "^0.131.0",
+    "mineflayer": "^4.39.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "vec3": "^0.1.10"
   },
   "devDependencies": {
-    "typescript": "^5.3.0",
-    "@types/node": "^20.10.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "eslint": "^8.55.0",
-    "eslint-config-next": "^15.1.0",
-    "prisma": "^5.15.0"
-  }
+    "@types/node": "^26.6.4",
+    "flying-squid": "^1.12.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  },
+  "type": "module"
 }
